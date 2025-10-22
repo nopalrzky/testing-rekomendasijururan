@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Demo CBR — Rekomendasi Jurusan (Berdasarkan Jurnal CogITo)</title>
+<style>
+  :root{--blue:#2b6cb0;--muted:#6b7280}
+  body{font-family:system-ui,Arial,Helvetica;margin:0;background:#f3f6fb;color:#111}
+  header{background:var(--blue);color:#fff;padding:20px;text-align:center}
+  .wrap{max-width:1100px;margin:20px auto;padding:18px}
+  .grid{display:grid;grid-template-columns:1fr 420px;gap:18px}
+  .card{background:#fff;padding:16px;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+  h2,h3{margin:6px 0}
+  .meta{font-size:13px;color:var(--muted)}
+  .attrs{height:420px;overflow:auto;padding-right:8px;border:1px solid #eee;border-radius:8px}
+  label{display:block;padding:6px 8px;border-bottom:1px solid #fafafa}
+  .btn{background:var(--blue);color:#fff;border:0;padding:10px 14px;border-radius:8px;cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .results{margin-top:10px}
+  .result{background:#f7fafc;padding:10px;border-radius:8px;margin-top:8px}
+  footer{text-align:center;padding:12px;color:var(--muted);font-size:13px;margin-top:18px}
+  .small{font-size:13px;color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center}
+  @media(max-width:980px){ .grid{grid-template-columns:1fr; } .attrs{height:300px} }
+</style>
+</head>
+<body>
+<header>
+  <h1>CBR — Rekomendasi Jurusan Kuliah (Demo dari Jurnal CogITo)</h1>
+  <div class="meta">Implementasi: Case-Based Reasoning — 56 atribut, 8 kasus lama, similarity = matched/size(case)</div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <!-- kiri: input atribut -->
+    <div class="card">
+      <h2>1) Masukkan Data Siswa — Pilih ciri minat & bakat</h2>
+      <p class="small">Centang semua ciri yang sesuai.</p>
+      <div class="attrs" id="attrs"></div>
+
+      <div style="margin-top:10px" class="row">
+        <button id="btnDiag" class="btn">Diagnosa</button>
+        <button id="btnReset" class="btn" style="background:#6b7280">Reset</button>
+        <div style="margin-left:auto" class="small">Jumlah tercentang: <span id="count">0</span></div>
+      </div>
+
+      <div class="results" id="results"></div>
+    </div>
+
+    <!-- kanan: ringkasan jurnal & petunjuk -->
+    <aside>
+      <div class="card">
+        <h3>Ringkasan Jurnal</h3>
+        <strong>Judul:</strong> Implementasi Case Based Reasoning Dalam Sistem Pakar Untuk Merekomendasikan Jurusan Kuliah<br>
+        <strong>Penulis:</strong> Yayang Eluis Bali Mawartika, Mohammad Guntur<br>
+        <strong>Sumber:</strong> CogITo Smart Journal, Vol.8 No.2 (2022)<br><br>
+
+        <h4>Abstrak singkat</h4>
+        <p class="small">Sistem pakar berbasis CBR dibuat untuk merekomendasikan jurusan kuliah berdasarkan 56 ciri minat & bakat, dikelompokkan ke 8 jenis minat-bakat. Basis kasus: 8 kasus lama. Sistem menghitung similarity untuk merekomendasikan jurusan.</p>
+
+        <h4>Metode similarity (paper)</h4>
+        <p class="small">Similarity dihitung dengan membandingkan kasus baru dengan tiap kasus lama. Nilai similarity = jumlah ciri cocok / jumlah ciri pada kasus lama. Kasus lama dengan nilai terbesar menjadi rekomendasi.</p>
+
+        <h4>Jenis Minat & Rekomendasi Jurusan</h4>
+        <ul class="small">
+          <li><b>Linguistik (MB1):</b> Komunikasi, Sastra, Pariwisata, Hukum, Jurnalistik</li>
+          <li><b>Naturalis (MB2):</b> Dokter Hewan, Peternakan, Kelautan, Kehutanan, Pertanian</li>
+          <li><b>Intrapersonal (MB3):</b> Teologi, Konseling, Filsafat</li>
+          <li><b>Matematis-Logis (MB4):</b> Akuntansi, Sains, Matematika, Aktuaria, IT/Komputer</li>
+          <li><b>Interpersonal (MB5):</b> Psikologi, Sosiologi, Hubungan Internasional</li>
+          <li><b>Musikal (MB6):</b> Seni Musik</li>
+          <li><b>Visual-Spasial (MB7):</b> Arsitek, Seni Lukis, Desain & Seni</li>
+          <li><b>Kinestetik (MB8):</b> Olahraga, Seni Tari, Seni Peran</li>
+        </ul>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h4>Cara kerja demo</h4>
+        <ol class="small">
+          <li>Pilih ciri minat/bakat (C01–C56).</li>
+          <li>Tekan <b>Diagnosa</b>.</li>
+          <li>Lihat top matches dan jurusan yang direkomendasikan.</li>
+        </ol>
+        <p class="small"><i>Catatan:</i> Demo ini meniru logika yang ada di jurnal; bukan pengganti asesor karir profesional.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<footer>
+  Demo dibuat berdasarkan isi jurnal CogITo (2022). Data atribut & kasus diambil dari tabel publikasi. Untuk keperluan nyata, lakukan validasi bersama konselor.
+</footer>
+
+<script>
+/* ===== DATA: Atribut C01-C56 (teks dari jurnal) ===== */
+const ATTRS = [
+  {code:"C01", label:"Menyukai baca buku"},
+  {code:"C02", label:"Menyukai membuat karangan puisi"},
+  {code:"C03", label:"Menyukai berbicara dan bercerita"},
+  {code:"C04", label:"Menyukai kegiatan menulis atau membuat karangan cerita"},
+  {code:"C05", label:"Suka mengutarakan atau bertukar ide / berdebat"},
+  {code:"C06", label:"Menyukai permainan olah kata (pantun, teka-teki)"},
+  {code:"C07", label:"Menyukai pelajaran bahasa"},
+  {code:"C08", label:"Senang memiliki hewan & bercocok tanam"},
+  {code:"C09", label:"Senang mempelajari ilmu pengetahuan alam"},
+  {code:"C10", label:"Peduli terhadap lingkungan"},
+  {code:"C11", label:"Menyukai tamasya ke kebun binatang/taman/laut"},
+  {code:"C12", label:"Senang berkemah / berpetualang di alam bebas"},
+  {code:"C13", label:"Suka mengoleksi benda-benda alam"},
+  {code:"C14", label:"Menyukai kegiatan memancing"},
+  {code:"C15", label:"Mempersiapkan rencana masa depan"},
+  {code:"C16", label:"Lebih memilih menghabiskan waktu di dalam rumah dan sendirian"},
+  {code:"C17", label:"Memilih bekerja/ belajar sendiri daripada bersama tim"},
+  {code:"C18", label:"Sering memikirkan mengenai kehidupan / diri sendiri"},
+  {code:"C19", label:"Mengenali kelebihan dan kekurangan diri"},
+  {code:"C20", label:"Menulis catatan harian (ide, kenangan)"},
+  {code:"C21", label:"Memiliki pertimbangan tinggi saat menentukan keputusan"},
+  {code:"C22", label:"Menyukai ilmu sains atau matematika"},
+  {code:"C23", label:"Tertarik pada permainan strategi (catur)"},
+  {code:"C24", label:"Senang pelajaran ilmu pengetahuan"},
+  {code:"C25", label:"Sering menyelesaikan soal matematika"},
+  {code:"C26", label:"Senang bermain komputer / tertarik cara kerja komputer"},
+  {code:"C27", label:"Memiliki ingatan kuat pada angka/statistik"},
+  {code:"C28", label:"Jarang mengandalkan jari/ alat bantu hitung"},
+  {code:"C29", label:"Mudah bergaul dan bersosialisasi"},
+  {code:"C30", label:"Mudah beradaptasi dengan orang baru"},
+  {code:"C31", label:"Lebih suka belajar berkelompok"},
+  {code:"C32", label:"Tidak segan menawarkan bantuan pada orang lain"},
+  {code:"C33", label:"Mudah paham perasaan teman dari ekspresi"},
+  {code:"C34", label:"Meningkatkan semangat kerja tim"},
+  {code:"C35", label:"Sering menjadi tempat curhat / penyemangat emosi"},
+  {code:"C36", label:"Dapat memainkan instrumen / alat musik"},
+  {code:"C37", label:"Hobi bernyanyi / mendengarkan musik"},
+  {code:"C38", label:"Mudah mengingat melodi atau nada"},
+  {code:"C39", label:"Mudah mengenali jenis lagu"},
+  {code:"C40", label:"Menggunakan anggota tubuh untuk menghasilkan suara"},
+  {code:"C41", label:"Suka bersenandung atau bernyanyi saat bekerja"},
+  {code:"C42", label:"Mampu menciptakan atau menulis lagu"},
+  {code:"C43", label:"Menyukai puzzle atau lego"},
+  {code:"C44", label:"Menyukai dunia fotografi"},
+  {code:"C45", label:"Menyukai seni gambar / lukis"},
+  {code:"C46", label:"Belajar dengan mengamati pekerjaan orang lain"},
+  {code:"C47", label:"Memiliki ingatan tinggi pada gambar/grafik"},
+  {code:"C48", label:"Memiliki daya ingat tinggi pada tempat/jalan"},
+  {code:"C49", label:"Mudah mengenali wajah daripada nama"},
+  {code:"C50", label:"Menyukai olahraga"},
+  {code:"C51", label:"Sering gerak jari / goyang kaki ketika belajar"},
+  {code:"C52", label:"Lebih banyak bergerak saat belajar"},
+  {code:"C53", label:"Menyukai sandiwara (acting) / menari"},
+  {code:"C54", label:"Suka aktivitas di luar ruangan"},
+  {code:"C55", label:"Lebih suka praktek langsung saat belajar"},
+  {code:"C56", label:"Senang bergerak & mudah bosan jika duduk lama"}
+];
+
+/* ===== Basis kasus lama (KL01..KL08) menurut tabel 3 pada jurnal =====
+   KL1: C1..C7
+   KL2: C8..C14
+   KL3: C15..C21
+   KL4: C22..C28
+   KL5: C29..C35
+   KL6: C36..C42
+   KL7: C43..C49
+   KL8: C50..C56
+*/
+const CASES = [
+  { id:"KL01", attrs:["C01","C02","C03","C04","C05","C06","C07"], mb:"MB1", nama:"Linguistik" },
+  { id:"KL02", attrs:["C08","C09","C10","C11","C12","C13","C14"], mb:"MB2", nama:"Naturalis" },
+  { id:"KL03", attrs:["C15","C16","C17","C18","C19","C20","C21"], mb:"MB3", nama:"Intrapersonal" },
+  { id:"KL04", attrs:["C22","C23","C24","C25","C26","C27","C28"], mb:"MB4", nama:"Matematis-Logis" },
+  { id:"KL05", attrs:["C29","C30","C31","C32","C33","C34","C35"], mb:"MB5", nama:"Interpersonal" },
+  { id:"KL06", attrs:["C36","C37","C38","C39","C40","C41","C42"], mb:"MB6", nama:"Musikal" },
+  { id:"KL07", attrs:["C43","C44","C45","C46","C47","C48","C49"], mb:"MB7", nama:"Visual-Spasial" },
+  { id:"KL08", attrs:["C50","C51","C52","C53","C54","C55","C56"], mb:"MB8", nama:"Kinestetik" }
+];
+
+/* ===== Mapping MB -> daftar jurusan (dari Tabel 2) ===== */
+const MB_TO_JURUSAN = {
+  MB1: ["Komunikasi","Sastra","Pariwisata","Hukum","Jurnalistik"],
+  MB2: ["Dokter Hewan","Peternakan","Kelautan","Kehutanan","Pertanian"],
+  MB3: ["Teologi","Konseling","Filsafat"],
+  MB4: ["Akuntansi","Sains","Matematika","Aktuaria","IT dan Komputer"],
+  MB5: ["Psikologi","Sosiologi","Hubungan Internasional"],
+  MB6: ["Seni Musik"],
+  MB7: ["Arsitek","Seni Lukis","Desain dan Seni"],
+  MB8: ["Olahraga","Seni Tari","Seni Peran"]
+};
+
+/* ===== render attribute checkboxes ===== */
+const attrsDiv = document.getElementById('attrs');
+ATTRS.forEach(a=>{
+  const lbl = document.createElement('label');
+  lbl.innerHTML = `<input type="checkbox" value="${a.code}" /> <strong>${a.code}</strong> — ${a.label}`;
+  attrsDiv.appendChild(lbl);
+});
+
+/* ===== helpers ===== */
+function getSelected(){
+  return Array.from(document.querySelectorAll('#attrs input[type=checkbox]:checked')).map(i=>i.value);
+}
+
+function calcSimilarity(selected){
+  // returns array of {id,nama,mb,matched,total,similarity}
+  return CASES.map(c=>{
+    const total = c.attrs.length;
+    let matched = 0;
+    c.attrs.forEach(a=>{
+      if(selected.includes(a)) matched++;
+    });
+    const similarity = total === 0 ? 0 : matched / total;
+    return { id:c.id, nama:c.nama, mb:c.mb, matched, total, similarity, jurusan:MB_TO_JURUSAN[c.mb] || [] };
+  }).sort((a,b)=>b.similarity - a.similarity);
+}
+
+/* ===== UI actions ===== */
+const countSpan = document.getElementById('count');
+attrsDiv.addEventListener('change', ()=> countSpan.textContent = getSelected().length );
+
+document.getElementById('btnReset').addEventListener('click', ()=>{
+  document.querySelectorAll('#attrs input[type=checkbox]').forEach(i=>i.checked=false);
+  document.getElementById('results').innerHTML = '';
+  countSpan.textContent = '0';
+});
+
+document.getElementById('btnDiag').addEventListener('click', ()=>{
+  const selected = getSelected();
+  if(selected.length===0){ alert('Pilih minimal 1 ciri (atribut).'); return; }
+  const res = calcSimilarity(selected);
+  showResults(res, selected);
+});
+
+/* ===== render results ===== */
+function showResults(res, selected){
+  const out = document.getElementById('results');
+  out.innerHTML = `<p><strong>Dipilih:</strong> ${selected.join(', ')}</p>`;
+  out.innerHTML += `<h3>Hasil (top matches)</h3>`;
+  // top 3
+  res.slice(0,3).forEach(r=>{
+    out.innerHTML += `<div class="result">
+      <strong>${r.id} — ${r.nama}</strong><br/>
+      Similarity: <strong>${(r.similarity*100).toFixed(1)}%</strong> (cocok ${r.matched} dari ${r.total} atribut)<br/>
+      <em>Rekomendasi jurusan:</em> ${r.jurusan.join(', ')}
+    </div>`;
+  });
+  // show best overall
+  const best = res[0];
+  out.innerHTML += `<div style="margin-top:10px" class="small"><strong>Interpretasi:</strong> Kasus lama terdekat = <strong>${best.id} (${best.nama})</strong>. Sistem merekomendasikan jurusan: <strong>${best.jurusan.join(', ')}</strong>.</div>`;
+  out.innerHTML += `<p style="margin-top:8px;color:#b33"><em>Disclaimer:</em> Ini hanya demo berbasis jurnal; untuk keputusan pendidikan, konsultasikan ke konselor akademik.</p>`;
+}
+</script>
+</body>
+</html>
